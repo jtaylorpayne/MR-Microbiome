@@ -1,0 +1,906 @@
+library(ggplot2)
+library(vegan)
+library(dplyr)
+library(scales)
+library(grid)
+library(reshape2)
+library(phyloseq)
+library(magrittr)
+library(knitr)
+library(indicspecies)
+
+#Figure 2#
+
+#import shared/taxonomy files for creation of otu_table, tax_table
+freeshared = 'c:/users/Jason/Desktop/mothur_long/free.shared'
+#freetree = 'c:/users/Jason/Desktop/mothur_long/free.tre' mothur_tree_file = freetree,
+freetaxa = 'c:/users/Jason/Desktop/free/free.cons.taxonomy'
+
+free_mothur_data=import_mothur(mothur_shared_file=freeshared, mothur_constaxonomy_file=freetaxa, parseFunction=parse_taxonomy_default) 
+free_mothur_data
+
+#physicochemical/biological data for sample_data and make into a data frame for statistics
+freesamples=read.csv('c:/users/Jason/Desktop/free/freepredictors.csv')
+attach(freesamples)
+freesamples
+
+free_sample_date=sample_data(freesamples)
+
+# Assign rownames to be Sample ID's
+rownames(free_sample_date)=free_sample_date$SampleID
+
+# Merge mothurdata object with sample metadata
+free=merge_phyloseq(free_mothur_data, free_sample_date)
+free
+sample_sums(free)
+
+##reformatting and filtering
+colnames(tax_table(free))
+
+#change taxonomy names and check to see if taxa labels are in rows
+colnames(tax_table(free)) <- c('Kingdom','Phylum','Class','Order','Family','Genus','Species')
+rank_names(free)
+taxa_are_rows(free)
+
+# taxa sums and grouping of otus into their phyla (FIG 2)
+freesingremoved=prune_taxa(taxa_sums(free) > 23, free)
+freetaxagrouped=tax_glom(freesingremoved, taxrank='Phylum')
+free_otu=data.frame(otu_table(freetaxagrouped))
+write.csv(free_otu, 'c:/users/Jason/Desktop/Fig 2/free_otu.csv')
+free_phyla=data.frame(tax_table(freetaxagrouped))
+write.csv(free_phyla, 'c:/users/Jason/Desktop/Fig 2/free_phyla.csv')
+
+data=read.csv('c:/users/Jason/Desktop/Fig 2/Fig 2 Free.csv')
+attach(data)
+
+data$Date<-as.numeric(data$Date)
+data$Phyla=ordered(data$Phyla, levels=c('Acidobacteria', 'Actinobacteria', 'Bacteroidetes', 'Chloroflexi', 'Cyanobacteria', 'Firmicutes', 'Planctomycetes', 'Proteobacteria', 'Verrucomicrobia', 'Other Phyla', 'Unclassified'))
+palette=c('red', 'gray30', 'blue', 'purple', 'green', 'pink', 'brown', 'gray50', 'yellow', 'gray80', 'orange')
+
+ggplot(data, aes(x=Date, y=Percent, fill=Phyla)) +
+  geom_area(colour="NA", size=0, alpha=1) + 
+  scale_fill_manual(values=palette, breaks=rev(levels(data$Phyla))) + 
+  labs(title='', x='rKM', y='Free-living (Mean % Reads)') + 
+  theme_bw() +
+  theme(axis.text.x=element_text(angle=90, hjust=1, vjust=0.5, size='15')) + 
+  theme(axis.title.x=element_text(angle=180, size='15')) + 
+  theme(axis.title.y=element_text(size='15')) + 
+  theme(axis.text.y=element_text(angle=90, hjust=0.5, vjust=0.5, size='10')) + 
+  scale_x_continuous(breaks=c(1,2,3,4,5,6,7,8,9,10,11,12,13), labels=c('U0356', 'U0317', 'M0200', 'M0084', 'M0003', 'L1432', 'L1304', 'L1191', 'L1107', 'L0941', 'L0803', 'L0708', 'L0587')) +
+  scale_y_continuous(breaks=c(0, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100)) +
+  theme(panel.grid.minor.x=element_blank(),panel.grid.major.x=element_blank()) +
+  theme(panel.grid.minor.y=element_blank(),panel.grid.major.y=element_blank()) + 
+  theme(panel.border=element_blank()) +
+  annotate('segment', x=1, xend=1, y=0, yend=100, size=2, colour='black') +
+  annotate('segment', x=2, xend=2, y=0, yend=100, size=2, colour='black') +
+  annotate('segment', x=5, xend=5, y=0, yend=100, size=2, colour='black') +
+  annotate('segment', x=10, xend=10, y=0, yend=100, size=2, colour='black') +
+  annotate('segment', x=12, xend=12, y=0, yend=100, size=2, colour='black') +
+  theme(axis.ticks.length = unit(.2, "cm")) +
+  guides(fill=FALSE)  
+
+#import shared/taxonomy files for creation of otu_table, tax_table
+partshared = 'c:/users/Jason/Desktop/mothur_long/part.shared'
+#parttree = 'c:/users/Jason/Desktop/mothur_long/part.tre' mothur_tree_file = parttree,
+parttaxa = 'c:/users/Jason/Desktop/part/part.cons.taxonomy'
+
+part_mothur_data=import_mothur(mothur_shared_file=partshared, mothur_constaxonomy_file=parttaxa, parseFunction=parse_taxonomy_default) 
+part_mothur_data
+
+#physicochemical/biological data for sample_data and make into a data frame for statistics
+partsamples=read.csv('c:/users/Jason/Desktop/part/partpredictors.csv')
+attach(partsamples)
+partsamples
+
+part_sample_date=sample_data(partsamples)
+
+# Assign rownames to be Sample ID's
+rownames(part_sample_date)=part_sample_date$SampleID
+
+# Merge mothurdata object with sample metadata
+part=merge_phyloseq(part_mothur_data, part_sample_date)
+part
+sample_sums(part)
+
+##reformatting and filtering
+colnames(tax_table(part))
+
+#change taxonomy names and check to see if taxa labels are in rows
+colnames(tax_table(part)) <- c('Kingdom','Phylum','Class','Order','Family','Genus','Species')
+rank_names(part)
+taxa_are_rows(part)
+
+# taxa sums and grouping of otus into their phyla (FIG 2)
+#partsingremoved=prune_taxa(taxa_sums(part) > 24, part)
+#parttaxagrouped=tax_glom(partsingremoved, taxrank='Phylum')
+#part_otu=data.frame(otu_table(parttaxagrouped))
+#write.csv(part_otu, 'c:/users/Jason/Desktop/Fig 2/part_otu.csv')
+#part_phyla=data.frame(tax_table(parttaxagrouped))
+#write.csv(part_phyla, 'c:/users/Jason/Desktop/Fig 2/part_phyla.csv')
+
+data=read.csv('c:/users/Jason/Desktop/Fig 2/Fig 2 Part.csv')
+attach(data)
+
+data$Date<-as.numeric(data$Date)
+data$Phyla=ordered(data$Phyla, levels=c('Acidobacteria', 'Actinobacteria', 'Bacteroidetes', 'Chloroflexi', 'Cyanobacteria', 'Firmicutes', 'Planctomycetes', 'Proteobacteria', 'Verrucomicrobia', 'Other Phyla', 'Unclassified'))
+palette=c('red', 'gray30', 'blue', 'purple', 'green', 'pink', 'brown', 'gray50', 'yellow', 'gray80', 'orange')
+
+ggplot(data, aes(x=Date, y=Percent, fill=Phyla)) +
+  geom_area(colour="NA", size=0, alpha=1) + 
+  scale_fill_manual(values=palette, breaks=rev(levels(data$Phyla))) + 
+  labs(title='', x='rkm', y='Particle-associated (Mean % Reads)') + 
+  theme_bw() +
+  theme(axis.text.x=element_text(angle=90, hjust=1, vjust=0.5, size='15')) + 
+  theme(axis.title.x=element_text(angle=180, size='15')) + 
+  theme(axis.title.y=element_text(size='15')) + 
+  theme(axis.text.y=element_text(angle=90, hjust=0.5, vjust=0.5, size='10')) + 
+  scale_x_continuous(breaks=c(1,2,3,4,5,6,7,8,9,10,11,12,13), labels=c('U0356', 'U0317', 'M0200', 'M0084', 'M0003', 'L1432', 'L1304', 'L1191', 'L1107', 'L0941', 'L0803', 'L0708', 'L0587')) +
+  scale_y_continuous(breaks=c(0, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100)) +
+  theme(panel.grid.minor.x=element_blank(),panel.grid.major.x=element_blank()) +
+  theme(panel.grid.minor.y=element_blank(),panel.grid.major.y=element_blank()) + 
+  theme(panel.border=element_blank()) +
+  annotate('segment', x=1, xend=1, y=0, yend=100, size=2, colour='black') +
+  annotate('segment', x=2, xend=2, y=0, yend=100, size=2, colour='black') +
+  annotate('segment', x=5, xend=5, y=0, yend=100, size=2, colour='black') +
+  annotate('segment', x=10, xend=10, y=0, yend=100, size=2, colour='black') +
+  annotate('segment', x=12, xend=12, y=0, yend=100, size=2, colour='black') +
+  theme(axis.ticks.length = unit(.2, "cm")) +
+  guides(fill=FALSE)  
+
+#Figure 3#
+
+#import shared/taxonomy files for creation of otu_table, tax_table
+freeshared = 'c:/users/Jason/Desktop/mothur_long/free.shared'
+#freetree = 'c:/users/Jason/Desktop/mothur_long/free.tre' mothur_tree_file = freetree,
+freetaxa = 'c:/users/Jason/Desktop/free/free.cons.taxonomy'
+
+free_mothur_data=import_mothur(mothur_shared_file=freeshared, mothur_constaxonomy_file=freetaxa, parseFunction=parse_taxonomy_default) 
+free_mothur_data
+
+#physicochemical/biological data for sample_data and make into a data frame for statistics
+freesamples=read.csv('c:/users/Jason/Desktop/free/freepredictors.csv')
+attach(freesamples)
+freesamples
+
+free_sample_date=sample_data(freesamples)
+
+# Assign rownames to be Sample ID's
+rownames(free_sample_date)=free_sample_date$SampleID
+
+# Merge mothurdata object with sample metadata
+free=merge_phyloseq(free_mothur_data, free_sample_date)
+free
+sample_sums(free)
+
+##reformatting and filtering
+colnames(tax_table(free))
+
+#change taxonomy names and check to see if taxa labels are in rows
+colnames(tax_table(free)) <- c('Kingdom','Phylum','Class','Order','Family','Genus','Species')
+rank_names(free)
+taxa_are_rows(free)
+
+# taxa sums and grouping of otus into their phyla (FIG 3)
+freesingremoved=prune_taxa(taxa_sums(free) > 23, free)
+freetaxagrouped=tax_glom(freesingremoved, taxrank='Genus')
+free_genus=data.frame(otu_table(freetaxagrouped))
+write.csv(free_genus, 'c:/users/Jason/Desktop/Fig 3/free_genus.csv')
+free_genera=data.frame(tax_table(freetaxagrouped))
+write.csv(free_genera, 'c:/users/Jason/Desktop/Fig 3/free_genera.csv')
+
+data=read.csv('c:/users/Jason/Desktop/Fig 3/Free Memphis.csv')
+attach(data)
+
+data2=ddply(data,.(Taxa), transform, ybegin=cumsum(Percent) - SE, yend = cumsum(Percent) + SE)
+
+ggplot(data2, aes(x=Date, y=Percent, colour=Taxa)) +
+  geom_line(size=1) +
+  geom_point() +
+  geom_errorbar(aes(ymax = Percent + SE, ymin = Percent - SE, width=0.25)) +
+  labs(title='', x='rkm', y='Acinetobacteria lwoffii (Mean % Reads)') + 
+  scale_color_manual(values=c('black')) +
+  theme_bw() +
+  theme(axis.text.x=element_text(angle=90, hjust=1, vjust=0.5)) + 
+  theme(axis.title.x=element_text(angle=180)) + 
+  theme(axis.title.y=element_text()) + 
+  theme(axis.text.y=element_text(angle=90, hjust=0.5, vjust=0.5)) + 
+  scale_x_continuous(breaks=c(1,2,3,4,5), labels=c('L1432','L1304', 'L1191', 'L1107', 'L0941')) +
+  scale_y_continuous(limits=c(0, 30)) +
+  theme(panel.border=element_rect(colour='black', fill=NA)) +
+  theme(panel.grid.minor.x=element_blank(),panel.grid.major.x=element_blank()) +
+  theme(panel.grid.minor.y=element_blank(),panel.grid.major.y=element_blank()) +
+  theme(legend.position='none') 
+
+#import shared/taxonomy files for creation of otu_table, tax_table
+partshared = 'c:/users/Jason/Desktop/mothur_long/part.shared'
+#parttree = 'c:/users/Jason/Desktop/mothur_long/part.tre' mothur_tree_file = parttree,
+parttaxa = 'c:/users/Jason/Desktop/part/part.cons.taxonomy'
+
+part_mothur_data=import_mothur(mothur_shared_file=partshared, mothur_constaxonomy_file=parttaxa, parseFunction=parse_taxonomy_default) 
+part_mothur_data
+
+#physicochemical/biological data for sample_data and make into a data frame for statistics
+partsamples=read.csv('c:/users/Jason/Desktop/part/partpredictors.csv')
+attach(partsamples)
+partsamples
+
+part_sample_date=sample_data(partsamples)
+
+# Assign rownames to be Sample ID's
+rownames(part_sample_date)=part_sample_date$SampleID
+
+# Merge mothurdata object with sample metadata
+part=merge_phyloseq(part_mothur_data, part_sample_date)
+part
+sample_sums(part)
+
+##reformatting and filtering
+colnames(tax_table(part))
+
+#change taxonomy names and check to see if taxa labels are in rows
+colnames(tax_table(part)) <- c('Kingdom','Phylum','Class','Order','Family','Genus','Species')
+rank_names(part)
+taxa_are_rows(part)
+
+# taxa sums and grouping of otus into their phyla (FIG 3)
+partsingremoved=prune_taxa(taxa_sums(part) > 24, part)
+parttaxagrouped=tax_glom(partsingremoved, taxrank='Genus')
+part_genus=data.frame(otu_table(parttaxagrouped))
+write.csv(part_genus, 'c:/users/Jason/Desktop/Fig 3/part_genus.csv')
+part_genera=data.frame(tax_table(parttaxagrouped))
+write.csv(part_genera, 'c:/users/Jason/Desktop/Fig 3/part_genera.csv')
+
+
+data=read.csv('c:/users/Jason/Desktop/Fig 3/Part Memphis.csv')
+attach(data)
+
+data2=ddply(data,.(Taxa), transform, ybegin=cumsum(Percent) - SE, yend = cumsum(Percent) + SE)
+
+ggplot(data2, aes(x=Date, y=Percent, colour=Taxa)) +
+  geom_line(size=1) +
+  geom_point() +
+  geom_errorbar(aes(ymax = Percent + SE, ymin = Percent - SE, width=0.25)) +
+  labs(title='', x='rkm', y='Exiguobacterium sp.(Mean % Reads)') + 
+  scale_color_manual(values=c('black')) +
+  theme_bw() +
+  theme(axis.text.x=element_text(angle=90, hjust=1, vjust=0.5)) + 
+  theme(axis.title.x=element_text(angle=180)) + 
+  theme(axis.title.y=element_text()) + 
+  theme(axis.text.y=element_text(angle=90, hjust=0.5, vjust=0.5)) + 
+  scale_x_continuous(breaks=c(1,2,3,4,5), labels=c('L1432','L1304', 'L1191', 'L1107', 'L0941')) +
+  scale_y_continuous(limits=c(0, 5)) +
+  theme(panel.border=element_rect(colour='black', fill=NA)) +
+  theme(panel.grid.minor.x=element_blank(),panel.grid.major.x=element_blank()) +
+  theme(panel.grid.minor.y=element_blank(),panel.grid.major.y=element_blank()) +
+  theme(legend.position='none') 
+
+#Figure 4#
+
+#import shared/taxonomy files for creation of otu_table, tax_table
+shared = 'c:/users/Jason/Desktop/Long Env/long.shared'
+taxa = 'c:/users/Jason/Desktop/Long Env/long.taxonomy'
+
+mothur_data=import_mothur(mothur_shared_file=shared, mothur_constaxonomy_file=taxa, parseFunction=parse_taxonomy_default) 
+mothur_data
+
+#prune samples 
+partmain_keepsamples=c('mis722p1','mis722p2','mis722p3','mis723p1','mis723p2','mis723p3',
+                       'mis724p1','mis724p2','mis724p3','mis725p1','mis725p2','mis725p3',
+                       'mis726p1','mis726p2','mis726p3','mis727p1','mis727p2','mis727p3',
+                       'mis728p1','mis728p2','mis728p3','mis729p1','mis729p2','mis729p3',
+                       'mis730p1','mis730p2','mis730p3','mis731p1','mis731p2','mis731p3',
+                       'mis801p1','mis801p2','mis801p3','mis802p1','mis802p2','mis802p3',
+                       'mis803p1','mis803p2','mis803p3')
+
+part_main=prune_samples(partmain_keepsamples, mothur_data)
+part_main
+sample_names(part_main)
+
+#physicochemical/biological data for sample_data and make into a data frame for statistics
+env_data=read.csv('c:/users/Jason/Desktop/Long Env/long_metadata.csv', row.names=1)
+attach(env_data)
+env_data
+
+env_data=sample_data(env_data)
+
+# Merge mothurdata object with sample metadata
+part_main_merge=merge_phyloseq(part_main, env_data)
+part_main_merge
+sample_sums(part_main_merge)
+
+##reformatting and filtering
+colnames(tax_table(part_main_merge))
+
+#change taxonomy names and check to see if taxa labels are in rows
+colnames(tax_table(part_main_merge)) <- c('Kingdom','Phylum','Class','Order','Family','Genus','Species')
+rank_names(part_main_merge)
+taxa_are_rows(part_main_merge)
+
+part_main_prune <- prune_taxa(taxa_sums(part_main_merge) > 0, part_main_merge)
+part_main_prune
+sample_sums(part_main_prune)
+
+# Initialize matrices to store richness and evenness estimates
+min_lib=6690
+min_lib
+nsamp = nsamples(part_main_prune)
+trials = 100
+
+Observed <- matrix(nrow = nsamp, ncol = trials)
+row.names(Observed) <- sample_names(part_main_prune)
+
+# It is always important to set a seed when you subsample so your result is replicable 
+set.seed(1000)
+for (i in 1:100) {
+  # Subsample
+  part_main_r <- rarefy_even_depth(part_main_prune, sample.size = min_lib, verbose = FALSE, replace = FALSE, trimOTUs = FALSE)
+  
+  # Calculate Observed
+  Obs <- as.numeric(as.matrix(estimate_richness(part_main_r, measures = "Observed")))
+  Observed[ ,i] <- Obs
+}
+
+sample_sums(part_main_r)
+
+# Create a new dataframe to hold the means and standard deviations of richness estimates
+SampleID <- row.names(Observed)
+mean <- apply(Observed, 1, mean)
+measure <- rep("Observed", nsamp)
+partmain_alpha_stats <- data.frame(SampleID, mean, measure)
+partmain_alpha_stats
+#write stats
+write.csv(partmain_alpha_stats, 'c:/users/Jason/Desktop/partmain_alpha.csv')
+
+#prune samples  **removed mis723f3 mis724f3 b/c of <5000 reads
+freemain_keepsamples=c('mis722f1','mis722f2','mis722f3','mis723f1','mis723f2','mis724f1',
+                       'mis724f2','mis725f1','mis725f2','mis725f3',
+                       'mis726f1','mis726f2','mis726f3','mis727f1','mis727f2','mis727f3',
+                       'mis728f1','mis728f2','mis728f3','mis729f1','mis729f2','mis729f3',
+                       'mis730f1','mis730f2','mis730f3','mis731f1','mis731f2','mis731f3',
+                       'mis801f1','mis801f2','mis801f3','mis802f1','mis802f2','mis802f3',
+                       'mis803f1','mis803f2','mis803f3')
+
+free_main=prune_samples(freemain_keepsamples, mothur_data)
+free_main
+sample_names(free_main)
+
+# Merge mothurdata object with sample metadata
+free_main_merge=merge_phyloseq(free_main, env_data)
+free_main_merge
+sample_sums(free_main_merge)
+
+##reformatting and filtering
+colnames(tax_table(free_main_merge))
+
+#change taxonomy names and check to see if taxa labels are in rows
+colnames(tax_table(free_main_merge)) <- c('Kingdom','Phylum','Class','Order','Family','Genus','Species')
+rank_names(free_main_merge)
+taxa_are_rows(free_main_merge)
+
+free_main_prune <- prune_taxa(taxa_sums(free_main_merge) > 0, free_main_merge)
+free_main_prune
+sample_sums(free_main_prune)
+
+# Initialize matrices to store richness and evenness estimates
+min_lib=6690
+min_lib
+nsamp = nsamples(free_main_prune)
+trials = 100
+
+Observed <- matrix(nrow = nsamp, ncol = trials)
+row.names(Observed) <- sample_names(free_main_prune)
+
+# It is always important to set a seed when you subsample so your result is replicable 
+set.seed(1000)
+for (i in 1:100) {
+  # Subsample
+  free_main_r <- rarefy_even_depth(free_main_prune, sample.size = min_lib, verbose = FALSE, replace = FALSE, trimOTUs = FALSE)
+  
+  # Calculate Observed
+  Obs <- as.numeric(as.matrix(estimate_richness(free_main_r, measures = "Observed")))
+  Observed[ ,i] <- Obs
+}
+
+sample_sums(free_main_r)
+
+# Create a new dataframe to hold the means and standard deviations of richness estimates
+SampleID <- row.names(Observed)
+mean <- apply(Observed, 1, mean)
+measure <- rep("Observed", nsamp)
+freemain_alpha_stats <- data.frame(SampleID, mean, measure)
+freemain_alpha_stats
+#write stats
+write.csv(freemain_alpha_stats, 'c:/users/Jason/Desktop/freemain_alpha.csv')
+
+alpha_data=read.csv('c:/users/Jason/Desktop/alpha_data.csv')
+attach(alpha_data)
+
+#Particle-associated
+ggplot(alpha_data, aes(x=rkm, y=partmainalpha_avg)) +
+  geom_point(size = 2) +
+  geom_errorbar(aes(ymax = partmainalpha_avg + partmainalpha_se, ymin = partmainalpha_avg - partmainalpha_se)) +
+  stat_smooth(method=lm, se=TRUE, colour='black') +
+  theme_bw() + 
+  theme(panel.border=element_rect(colour='black', fill=NA)) +
+  scale_x_continuous(breaks=c(1889, 1851, 1733, 1617, 1537, 1432, 1304, 1191, 1107, 941, 803, 708, 587), labels=c('U0356', 'U0317', 'M0200', 'M0084', 'M0003', 'L1432', 'L1304', 'L1191', 'L1107', 'L0941', 'L0803', 'L0708', 'L0587')) +
+  scale_y_continuous(limits=c(800, 2000)) +
+  labs(title='', x='', y='Particle-associated') + 
+  theme(panel.grid.minor.x=element_blank(),panel.grid.major.x=element_blank()) +
+  theme(panel.grid.minor.y=element_blank(),panel.grid.major.y=element_blank()) +
+  coord_flip()
+
+set.seed(1000)
+partmainalpha_fit <- lm(partmainalpha_avg~rkm)
+summary(partmainalpha_fit)
+confint(partmainalpha_fit, level=0.95)
+
+#Free-living
+ggplot(alpha_data, aes(x=rkm, y=freemainalpha_avg)) +
+  geom_point(size = 2) +
+  geom_errorbar(aes(ymax = freemainalpha_avg + freemainalpha_se, ymin = freemainalpha_avg - freemainalpha_se)) +
+  stat_smooth(method=lm, se=TRUE, colour='black') +
+  theme_bw() + 
+  theme(panel.border=element_rect(colour='black', fill=NA)) +
+  scale_x_continuous(breaks=c(1889, 1851, 1733, 1617, 1537, 1432, 1304, 1191, 1107, 941, 803, 708, 587), labels=c('U0356', 'U0317', 'M0200', 'M0084', 'M0003', 'L1432', 'L1304', 'L1191', 'L1107', 'L0941', 'L0803', 'L0708', 'L0587')) +
+  scale_y_continuous(breaks=c(300, 400, 500, 600, 700, 800)) +
+  labs(title='', x='', y='Free-living') + 
+  theme(panel.grid.minor.x=element_blank(),panel.grid.major.x=element_blank()) +
+  theme(panel.grid.minor.y=element_blank(),panel.grid.major.y=element_blank()) +
+  coord_flip()
+
+set.seed(1000)
+freemainalpha_fit <- lm(freemainalpha_avg~rkm)
+summary(freemainalpha_fit)
+confint(freemainalpha_fit, level=0.95)
+
+#Figure 5#
+
+#import shared/taxonomy files for creation of otu_table, tax_table
+freeshared = 'c:/users/Jason/Desktop/mothur_long/free.shared'
+#freetree = 'c:/users/Jason/Desktop/mothur_long/free.tre' mothur_tree_file = freetree,
+freetaxa = 'c:/users/Jason/Desktop/free/free.cons.taxonomy'
+
+free_mothur_data=import_mothur(mothur_shared_file=freeshared, mothur_constaxonomy_file=freetaxa, parseFunction=parse_taxonomy_default) 
+free_mothur_data
+
+#physicochemical/biological data for sample_data and make into a data frame for statistics
+freesamples=read.csv('c:/users/Jason/Desktop/free/freepredictors.csv')
+attach(freesamples)
+freesamples
+
+free_sample_date=sample_data(freesamples)
+
+# Assign rownames to be Sample ID's
+rownames(free_sample_date)=free_sample_date$SampleID
+
+# Merge mothurdata object with sample metadata
+free=merge_phyloseq(free_mothur_data, free_sample_date)
+free
+sample_sums(free)
+
+##reformatting and filtering
+colnames(tax_table(free))
+
+#change taxonomy names and check to see if taxa labels are in rows
+colnames(tax_table(free)) <- c('Kingdom','Phylum','Class','Order','Family','Genus','Species')
+rank_names(free)
+taxa_are_rows(free)
+
+#Get rid of any OTUs not present in any samples and singletons 
+freeremoved=prune_taxa(taxa_sums(free) > 23, free)
+freeremoved
+sample_sums(freeremoved)
+
+##### Normalization (i.e. subsample=t in mothur) rngseed needs to always be the same (e.g. always starts at the same point)
+free_normalized=rarefy_even_depth(freeremoved, sample.size=min(sample_sums(freeremoved)), rngseed=1000, replace=FALSE, trimOTUs = FALSE)
+free_normalized
+sample_sums(free_normalized)
+
+# Fix month and section levels in sample_data
+sample_data(free_normalized)$River=factor(sample_data(free_normalized)$River, levels = c('UMR', 'MMR', 'LMR', 'ILR', 'MOR', 'OHR', 'ARR', 'YZR'))
+sample_data(free_normalized)$Section=factor(sample_data(free_normalized)$Section, levels = c('Mississippi River', 'Tributary'))
+
+## Distance matrix calculated from call to distance and Ordination
+# uses vegan's metaMDS() with bray-curtis dissimilarity
+set.seed(1000)
+bray_dist=phyloseq::distance(free_normalized, method='bray')
+set.seed(1000)
+bray_nmds=ordinate(free_normalized, method='NMDS', bray_dist) 
+bray_nmds
+
+#Plotting Bray-Curtis NMDS
+plot_ordination(physeq=free_normalized, ordination=bray_nmds, color = 'River', shape = 'Section', title = 'Free-living') + 
+  geom_point(aes(fill=River), colour='black', size=5) +
+  scale_fill_manual(values = c('red', 'orange', 'green', 'blue', 'yellow', 'black', 'gray', 'white')) + 
+  scale_shape_manual(values=c(21,24)) +
+  theme_bw() +
+  theme(panel.border=element_rect(colour='black', fill=NA)) +
+  theme(panel.grid.minor.x=element_blank(),panel.grid.major.x=element_blank()) +
+  theme(panel.grid.minor.y=element_blank(),panel.grid.major.y=element_blank()) +
+  theme(legend.key=element_rect(fill=NA, linetype = 0)) +
+  theme(legend.position='none')
+
+## Preparation for Indicator OTUs
+#keep the 100 most abundant phyla
+topN = 100
+most_abundant_taxa = sort(taxa_sums(free_normalized), TRUE)[1:topN]
+print(most_abundant_taxa)
+free_100 = prune_taxa(names(most_abundant_taxa), free_normalized)
+free_100
+free_for_indicators=data.frame(otu_table(free_100))
+write.csv(free_for_indicators, 'c:/users/Jason/Desktop/Fig 3/free_for_indicators.csv')
+
+#### Indicator OTUs (indicspecies package)
+freeind=read.csv('c:/users/Jason/Desktop/Fig 3/freeindicators.csv')
+attach(freeind)
+freeind
+
+groups = c(rep(1,3), rep(2,3), rep(3,3), rep(4,2), rep(5,2), rep(6,3), rep(7,3), rep(8,3), rep(9,3), rep(10,3), 
+           rep(11,3), rep(12,3), rep(13,3), rep(14,3), rep(15,3), rep(16,3), rep(17,3), rep(18,3))
+groups 
+set.seed(1000)
+freeindval=multipatt(freeind, groups, duleg=TRUE, control=how(nperm=999))
+summary(freeindval)
+
+## Statistical Tests
+# make a data frame from the sample_data 
+sampledf=data.frame(sample_data(freesamples))
+sampledf
+
+# uses vegan's 'vegdist' function of bray-curtis diss. - same used with above ordination
+set.seed(1000)
+bray_dist=phyloseq::distance(free_normalized, method='bray')
+bray_dist
+
+# adonis PERMANOVA to test if groups have different centroids
+set.seed(1000)
+adonis.site=adonis(bray_dist ~ River, sampledf)
+adonis.site
+
+# Test for homogen. of dispersion test (beta)
+set.seed(1000)
+beta=betadisper(bray_dist, sampledf$River)
+permutest(beta)
+beta
+
+#import shared/taxonomy files for creation of otu_table, tax_table
+freemainshared = 'c:/users/Jason/Desktop/mothur_long/freemain.shared'
+#freemaintree = 'c:/users/Jason/Desktop/mothur_long/freemain.tre' mothur_tree_file = freemaintree,
+freemaintaxa = 'c:/users/Jason/Desktop/free/freemain.cons.taxonomy'
+
+freemain_mothur_data=import_mothur(mothur_shared_file = freemainshared, mothur_constaxonomy_file = freemaintaxa, parseFunction = parse_taxonomy_default) 
+freemain_mothur_data
+
+#physicochemical/biological data for sample_data and make into a data frame for statistics
+freemainsamples=read.csv('c:/users/Jason/Desktop/free/freemainpredictors.csv')
+attach(freemainsamples)
+freemainsamples
+
+freemain_sample_date=sample_data(freemainsamples)
+
+# Assign rownames to be Sample ID's
+rownames(freemain_sample_date)=freemain_sample_date$SampleID
+
+# Merge mothurdata object with sample metadata
+freemain=merge_phyloseq(freemain_mothur_data, freemain_sample_date)
+freemain
+sample_sums(freemain)
+
+##reformatting and filtering
+colnames(tax_table(freemain))
+
+#change taxonomy names and check to see if taxa labels are in rows
+colnames(tax_table(freemain)) <- c('Kingdom','Phylum','Class','Order','Family','Genus','Species')
+rank_names(freemain)
+taxa_are_rows(freemain)
+
+#Get rid of any OTUs singletons and rare removed
+freemainremoved=prune_taxa(taxa_sums(freemain) > 17, freemain)
+freemainremoved
+sample_sums(freemainremoved)
+
+##### Normalization (i.e. subsample=t in mothur) rngseed needs to always be the same (e.g. always starts at the same point)
+freemain_normalized=rarefy_even_depth(freemainremoved, sample.size=min(sample_sums(freemainremoved)), rngseed=1000, replace=FALSE, trimOTUs = FALSE)
+freemain_normalized
+sample_sums(freemain_normalized)
+
+# Fix site and section levels in sample_data
+sample_data(freemain_normalized)$Site=factor(sample_data(freemain_normalized)$Site, levels = c('umra','umrb','mmra','mmrb','mmrc','lmra','lmrb','lmrc','lmrd','lmre','lmrf','lmrg','lmrh'))
+sample_data(freemain_normalized)$Section=factor(sample_data(freemain_normalized)$Section, levels = c('upper', 'middle', 'lower'))
+
+## Distance matrix calculated from call to distance and Ordination
+set.seed(1000)
+bray_dist=phyloseq::distance(freemain_normalized, method='bray')
+bray_dist
+set.seed(1000)
+bray_nmds=ordinate(freemain_normalized, method='NMDS', bray_dist) 
+bray_nmds
+
+# sites data scores from bray_nmds
+freemainsites=data.frame(scores(bray_nmds, choices=c(1,2),display = c('sites'))) 
+write.csv(freemainsites, 'c:/users/Jason/Desktop/Fig 5/freemainsites.csv')
+
+#Plotting Bray-Curtis NMDS
+freemain_palette=c('red','red','orange','orange','orange','green','green','green','green','green','green','green','green')
+plot_ordination(physeq=freemain_normalized, ordination=bray_nmds, color = 'Site', shape='Section', title = '') + 
+  scale_color_manual(values = freemain_palette) +
+  geom_polygon(aes(fill=Site)) +
+  scale_fill_manual(values = c('red','red','orange','orange','orange','green','green','green','green','green','green','green','green')) + 
+  theme_bw() +
+  theme(panel.border=element_rect(colour='black', fill=NA)) +
+  theme(panel.grid.minor.x=element_blank(),panel.grid.major.x=element_blank()) +
+  theme(panel.grid.minor.y=element_blank(),panel.grid.major.y=element_blank()) + 
+  theme(legend.key=element_rect(fill=NA, linetype = 0)) +
+  theme(legend.position='none') 
+
+## Preparation for Indicator OTUs
+#keep the 100 most abundant phyla
+topN = 100
+most_abundant_taxa = sort(taxa_sums(freemain_normalized), TRUE)[1:topN]
+print(most_abundant_taxa)
+freemain100 = prune_taxa(names(most_abundant_taxa), freemain_normalized)
+freemain100
+freemain_for_indicators=data.frame(otu_table(freemain100))
+write.csv(freemain_for_indicators, 'c:/users/Jason/Desktop/Fig 5/freemain_for_indicators.csv')
+
+#### Indicator OTUs (indicspecies package)
+freemainind=read.csv('c:/users/Jason/Desktop/Fig 5/freemainindicators.csv')
+attach(freemainind)
+freemainind
+
+groups = c(rep(1,3), rep(2,2), rep(3,2), rep(4,3), rep(5,3), rep(6,3), rep(7,3), rep(8,3), rep(9,3), rep(10,3), rep(11,3), rep(12,3), rep(13,3))
+groups 
+set.seed(1000)
+freemainindval=multipatt(freemainind, groups, duleg=TRUE, control=how(nperm=999))
+summary(freemainindval)
+
+## Statistical Tests
+# make a data frame from the sample_data 
+sampledf=data.frame(sample_data(freemainsamples))
+sampledf
+
+# uses vegan's 'vegdist' function of bray-curtis diss. - same used with above ordination
+set.seed(1000)
+bray_dist=phyloseq::distance(freemain_normalized, method='bray')
+bray_dist
+
+# adonis PERMANOVA to test if groups have different centroids
+set.seed(1000)
+adonis.River=adonis(bray_dist ~ River, sampledf)
+adonis.River
+
+# Test for homogen. of dispersion test (beta)
+set.seed(1000)
+beta=betadisper(bray_dist, sampledf$River, type='centroid', bias.adjust=TRUE)
+permutest(beta)
+
+#Pairwise PERMANOVA
+set.seed(1000)
+r=pairwise.perm.manova(bray_dist, sampledf$River, nperm=999, p.method='fdr')
+r
+
+#import shared/taxonomy files for creation of otu_table, tax_table
+partshared = 'c:/users/Jason/Desktop/mothur_long/part.shared'
+#parttree = 'c:/users/Jason/Desktop/mothur_long/part.tre' mothur_tree_file = parttree,
+parttaxa = 'c:/users/Jason/Desktop/part/part.cons.taxonomy'
+
+part_mothur_data=import_mothur(mothur_shared_file = partshared, mothur_constaxonomy_file = parttaxa, parseFunction = parse_taxonomy_default) 
+part_mothur_data
+
+#physicochemical/biological data for sample_data and make into a data frame for statistics
+partsamples=read.csv('c:/users/Jason/Desktop/part/partpredictors.csv')
+attach(partsamples)
+partsamples
+
+part_sample_date=sample_data(partsamples)
+
+# Assign rownames to be Sample ID's
+rownames(part_sample_date)=part_sample_date$SampleID
+
+# Merge mothurdata object with sample metadata
+part=merge_phyloseq(part_mothur_data, part_sample_date)
+part
+sample_sums(part)
+
+##reformatting and filtering
+colnames(tax_table(part))
+
+#change taxonomy names and check to see if taxa labels are in rows
+colnames(tax_table(part)) <- c('Kingdom','Phylum','Class','Order','Family','Genus','Species')
+rank_names(part)
+taxa_are_rows(part)
+
+#Get rid of any OTUs not present in any samples and singletons 
+partremoved=prune_taxa(taxa_sums(part) > 24, part)
+partremoved
+sample_sums(partremoved)
+
+##### Normalization (i.e. subsample=t in mothur) rngseed needs to always be the same (e.g. always starts at the same point)
+part_normalized=rarefy_even_depth(partremoved, sample.size=min(sample_sums(partremoved)), rngseed=1000, replace=FALSE, trimOTUs = FALSE)
+part_normalized
+sample_sums(part_normalized)
+
+# Fix month and section levels in sample_data
+sample_data(part_normalized)$River=factor(sample_data(part_normalized)$River, levels = c('UMR', 'MMR', 'LMR', 'ILR', 'MOR', 'OHR', 'ARR', 'YZR'))
+sample_data(part_normalized)$Section=factor(sample_data(part_normalized)$Section, levels = c('Mississippi River', 'Tributary'))
+
+## Distance matrix calculated from call to distance and Ordination
+set.seed(1000)
+bray_dist=phyloseq::distance(part_normalized, method='bray')
+set.seed(1000)
+bray_nmds=ordinate(part_normalized, method='NMDS', bray_dist) 
+bray_nmds
+
+# sites data scores from bray_nmds
+partmainsites=data.frame(scores(bray_nmds, choices=c(1,2),display = c('sites'))) 
+write.csv(partmainsites, 'c:/users/Jason/Desktop/Fig 5/partsites.csv')
+
+#Plotting Bray-Curtis NMDS
+plot_ordination(physeq=part_normalized, ordination=bray_nmds, color = 'River', shape = 'Section', title = 'Particle-associated') + 
+  geom_point(aes(fill=River), colour='black', size=5) +
+  scale_fill_manual(values = c('red', 'orange', 'green', 'blue', 'yellow', 'black', 'gray', 'white')) + 
+  scale_shape_manual(values=c(21,24)) +
+  theme_bw() +
+  theme(panel.border=element_rect(colour='black', fill=NA)) +
+  theme(panel.grid.minor.x=element_blank(),panel.grid.major.x=element_blank()) +
+  theme(panel.grid.minor.y=element_blank(),panel.grid.major.y=element_blank()) +
+  theme(legend.key=element_rect(fill=NA, linetype = 0)) +
+  theme(legend.position='none')
+
+## Preparation for Indicator OTUs
+#keep the 100 most abundant phyla
+topN = 100
+most_abundant_taxa = sort(taxa_sums(part_normalized), TRUE)[1:topN]
+print(most_abundant_taxa)
+part_100 = prune_taxa(names(most_abundant_taxa), part_normalized)
+part_100
+part_for_indicators=data.frame(otu_table(part_100))
+write.csv(part_for_indicators, 'c:/users/Jason/Desktop/Fig 3/part_for_indicators.csv')
+
+#### Indicator OTUs (indicspecies package)
+partind=read.csv('c:/users/Jason/Desktop/Fig 3/partindicators.csv')
+attach(partind)
+partind
+
+groups = c(rep(1,3), rep(2,3), rep(3,3), rep(4,3), rep(5,3), rep(6,3), rep(7,3), rep(8,3), rep(9,3), rep(10,3), 
+           rep(11,3), rep(12,3), rep(13,3), rep(14,3), rep(15,3), rep(16,3), rep(17,3), rep(18,3))
+groups
+set.seed(1000)
+partindval=multipatt(partind, groups, duleg=TRUE, control=how(nperm=999))
+summary(partindval)
+
+## Statistical Tests
+# make a data frame from the sample_data 
+sampledf=data.frame(sample_data(partsamples))
+sampledf
+
+# uses vegan's 'vegdist' function of bray-curtis diss. - same used with above ordination
+set.seed(1000)
+bray_dist=phyloseq::distance(part_normalized, method='bray')
+bray_dist
+
+# adonis PERMANOVA to test if groups have different centroids 
+set.seed(1000)
+adonis.site=adonis(bray_dist ~ River, sampledf)
+adonis.site
+
+# Test for homogen. of dispersion test (beta)
+set.seed(1000)
+beta=betadisper(bray_dist, sampledf$River)
+permutest(beta)
+
+#import shared/taxonomy files for creation of otu_table, tax_table
+partmainshared = 'c:/users/Jason/Desktop/mothur_long/partmain.shared'
+#partmaintree = 'c:/users/Jason/Desktop/mothur_long/partmain.tre' mothur_tree_file = partmaintree,
+partmaintaxa = 'c:/users/Jason/Desktop/part/partmain.cons.taxonomy'
+
+partmain_mothur_data=import_mothur(mothur_shared_file = partmainshared, mothur_constaxonomy_file = partmaintaxa, parseFunction = parse_taxonomy_default) 
+partmain_mothur_data
+
+#physicochemical/biological data for sample_data and make into a data frame for statistics
+partmainsamples=read.csv('c:/users/Jason/Desktop/part/partmainpredictors.csv')
+attach(partmainsamples)
+partmainsamples
+
+partmain_sample_date=sample_data(partmainsamples)
+
+# Assign rownames to be Sample ID's
+rownames(partmain_sample_date)=partmain_sample_date$SampleID
+
+# Merge mothurdata object with sample metadata
+partmain=merge_phyloseq(partmain_mothur_data, partmain_sample_date)
+partmain
+sample_sums(partmain)
+
+##reformatting and filtering
+colnames(tax_table(partmain))
+
+#change taxonomy names and check to see if taxa labels are in rows
+colnames(tax_table(partmain)) <- c('Kingdom','Phylum','Class','Order','Family','Genus','Species')
+rank_names(partmain)
+taxa_are_rows(partmain)
+
+#Get rid of any OTUs singletons and rare removed
+partmainremoved=prune_taxa(taxa_sums(partmain) > 19, partmain)
+partmainremoved
+sample_sums(partmainremoved)
+
+##### Normalization (i.e. subsample=t in mothur) rngseed needs to always be the same (e.g. always starts at the same point)
+partmain_normalized=rarefy_even_depth(partmainremoved, sample.size=min(sample_sums(partmainremoved)), rngseed=1000, replace=FALSE, trimOTUs = FALSE)
+partmain_normalized
+sample_sums(partmain_normalized)
+
+# Fix site and section levels in sample_data
+sample_data(partmain_normalized)$Site=factor(sample_data(partmain_normalized)$Site, levels = c('umra','umrb','mmra','mmrb','mmrc','lmra','lmrb','lmrc','lmrd','lmre','lmrf','lmrg','lmrh'))
+sample_data(partmain_normalized)$Section=factor(sample_data(partmain_normalized)$Section, levels = c('upper', 'middle', 'lower'))
+
+## Distance matrix calculated from call to distance and Ordination
+set.seed(1000)
+bray_dist=phyloseq::distance(partmain_normalized, method='bray')
+bray_dist
+set.seed(1000)
+bray_nmds=ordinate(partmain_normalized, method='NMDS', bray_dist) 
+bray_nmds
+
+# sites data scores from bray_nmds
+partmainsites=data.frame(scores(bray_nmds, choices=c(1,2),display = c('sites'))) 
+write.csv(partmainsites, 'c:/users/Jason/Desktop/Fig 5/partmainsites.csv')
+
+#Plotting Bray-Curtis NMDS
+partmain_palette=c('red','red','orange','orange','orange','green','green','green','green','green','green','green','green')
+plot_ordination(physeq=partmain_normalized, ordination=bray_nmds, color = 'Site', shape='Section', title = '') + 
+  scale_color_manual(values = partmain_palette) +
+  geom_polygon(aes(fill=Site, alpha=0)) +
+  scale_fill_manual(values = c('red','red','orange','orange','orange','green','green','green','green','green','green','green','green')) + 
+  theme_bw() +
+  theme(panel.border=element_rect(colour='black', fill=NA)) +
+  theme(panel.grid.minor.x=element_blank(),panel.grid.major.x=element_blank()) +
+  theme(panel.grid.minor.y=element_blank(),panel.grid.major.y=element_blank()) + 
+  theme(legend.key=element_rect(fill=NA, linetype = 0)) +
+  theme(legend.position='none') 
+
+## Preparation for Indicator OTUs
+#keep the 100 most abundant phyla
+topN = 100
+most_abundant_taxa = sort(taxa_sums(partmain_normalized), TRUE)[1:topN]
+print(most_abundant_taxa)
+partmain100 = prune_taxa(names(most_abundant_taxa), partmain_normalized)
+partmain100
+partmain_for_indicators=data.frame(otu_table(partmain100))
+write.csv(partmain_for_indicators, 'c:/users/Jason/Desktop/Fig 5/partmain_for_indicators.csv')
+
+#### Indicator OTUs (indicspecies package)
+partmainind=read.csv('c:/users/Jason/Desktop/Fig 5/partmainindicators.csv')
+attach(partmainind)
+partmainind
+
+groups = c(rep(1,3), rep(2,3), rep(3,3), rep(4,3), rep(5,3), rep(6,3), rep(7,3), rep(8,3), rep(9,3), rep(10,3), rep(11,3), rep(12,3), rep(13,3))
+groups 
+set.seed(1000)
+partmainindval=multipatt(partmainind, groups, duleg=TRUE, control=how(nperm=999))
+summary(partmainindval)
+
+## Statistical Tests
+# make a data frame from the sample_data 
+sampledf=data.frame(sample_data(partmainsamples))
+sampledf
+
+# uses vegan's 'vegdist' function of bray-curtis diss. - same used with above ordination
+set.seed(1000)
+bray_dist=phyloseq::distance(partmain_normalized, method='bray')
+bray_dist
+
+# adonis PERMANOVA to test if groups have different centroids
+set.seed(1000)
+adonis.River=adonis(bray_dist ~ River, sampledf)
+adonis.River
+
+# Test for homogen. of dispersion test (beta)
+set.seed(1000)
+beta=betadisper(bray_dist, sampledf$River, type='centroid', bias.adjust=TRUE)
+permutest(beta)
+
+#Pairwise PERMANOVA
+set.seed(1000)
+r=pairwise.perm.manova(bray_dist, sampledf$River, nperm=999, p.method='fdr')
+r
